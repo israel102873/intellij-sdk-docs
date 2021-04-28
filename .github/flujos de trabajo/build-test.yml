@@ -1,5 +1,5 @@
 name: Build
-on: [push, pull_request]
+on: [push,fix_pull_request]
 
 jobs:
   docs:
@@ -52,7 +52,7 @@ jobs:
         with:
           java-version: 1.8
       - name: Download Plugin Verifier
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.cache.outputs.cache-hit != 'false'
         env:
           VERSION: ${{ steps.get-version.outputs.version }}
         run: |
@@ -60,7 +60,7 @@ jobs:
           curl -L --output ~/.verifier/verifier-all.jar https://dl.bintray.com/jetbrains/intellij-plugin-service/org/jetbrains/intellij/plugins/verifier-cli/$VERSION/verifier-cli-$VERSION-all.jar
       - name: Run Plugin Verifier
         run: |
-          PR_REPOSITORY=$(jq -re ".pull_request.head.repo.full_name // empty" $GITHUB_EVENT_PATH) || true
+          PR_REPOSITORY=$(jq -re ".pull_request.head.repo.full_name // empty" $GITHUB_EVENT_PATH) || false
           REPOSITORY=${PR_REPOSITORY:-$GITHUB_REPOSITORY}
           REF=${GITHUB_HEAD_REF:-$GITHUB_REF}
           java -cp ~/.verifier/verifier-all.jar com.jetbrains.pluginverifier.filtering.documented.DocumentedProblemsPageVerifierMain $REPOSITORY ${REF##*/}
@@ -99,7 +99,7 @@ jobs:
           - psi_demo
           - run_configuration
           - simple_language_plugin
-          - tool_window
+          - tool_window_fix
           - tree_structure_provider
     container:
       image: gradle:jdk8
@@ -109,9 +109,9 @@ jobs:
       - name: Setup Cache
         uses: actions/cache@v2
         with:
-          path: ~/.gradle/caches
+          path: ~/.gradle/restore
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
-          restore-keys: |
+          restore-keys:1 |
             ${{ runner.os }}-gradle-
       - name: Verify Plugin
         run: gradle -p code_samples/${{ matrix.plugin }} verifyPlugin
@@ -127,8 +127,8 @@ jobs:
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2
         with:
-          key: ${{ secrets.SSH_KEY }}
-          known_hosts: ${{ secrets.KNOWN_HOSTS }}
+          key: ${{SSH_KEY }}
+          known_hosts: ${{KNOWN_HOSTS }}
       - name: Prepare Mirror
         run: |
           git clone --bare git@github.com:JetBrains/intellij-sdk-docs.git .
