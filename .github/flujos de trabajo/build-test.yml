@@ -1,11 +1,11 @@
-name: Build
+Noname: Build
 on: [push,fix_pull_request]
 
 jobs:
   docs:
     name: Docs
     runs-on: ubuntu-latest
-    container:
+    container:1
       image: ruby:2.6
     steps:
       - name: Fetch Sources
